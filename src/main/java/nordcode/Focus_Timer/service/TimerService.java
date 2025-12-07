@@ -6,6 +6,7 @@ import nordcode.Focus_Timer.repository.SessionRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class TimerService {
@@ -25,7 +26,18 @@ public class TimerService {
 
 
     public void stopSessionById(Long id){
+       FocusSession session = repository.findById(id);
+        repository.updateEndTime(session.getId(),LocalDateTime.now(), session.getDurationSeconds(), session.getStatus());
+        repository.save(session);
+        System.out.println("Session ended! " + session.getTaskName());
+    }
 
+    public List<FocusSession> allSession(){
+       return repository.findALL();
+    }
+
+    public void deleteSession(Long id){
+       repository.deleteSessionById(id);
     }
 
 }

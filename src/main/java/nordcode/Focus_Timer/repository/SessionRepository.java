@@ -18,6 +18,7 @@ public class SessionRepository{
         this.jdbcTemplate = jdbcTemplate;
     }
 
+
     public void save(FocusSession session){
         String sql = "INSERT INTO focus_sessions (task_name, start_time, status) VALUES (?,?,?)";
         jdbcTemplate.update(sql,
@@ -36,6 +37,11 @@ public class SessionRepository{
             return sessions.get(0);
         }
 
+    }
+
+    public void deleteSessionById(Long id){
+        String sql = "DELETE FROM focus_sessions WHERE id = ? ";
+        jdbcTemplate.update(sql,id);
     }
 
     public void updateEndTime(Long id, LocalDateTime endTime, Long duration, StatusEnum statusEnum){
@@ -59,7 +65,6 @@ public class SessionRepository{
         session.setId(rs.getLong("id"));
         session.setTaskName(rs.getString("task_name"));
 
-
         String startTimeStr = rs.getString("start_time");
         if (startTimeStr != null) {
             session.setStartTime(LocalDateTime.parse(startTimeStr));
@@ -72,12 +77,10 @@ public class SessionRepository{
 
         session.setDurationSeconds(rs.getLong("duration_seconds"));
 
-
         String statusStr = rs.getString("status");
         if (statusStr != null) {
             session.setStatus(StatusEnum.valueOf(statusStr));
         }
-
         return session;
     };
 }
