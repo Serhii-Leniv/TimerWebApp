@@ -14,57 +14,60 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
-public class SessionRepository{
+public class SessionRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
-    public SessionRepository(JdbcTemplate jdbcTemplate){
+    public SessionRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    public boolean checkIfSessionRunning() {
+        String sql = "SELECT count(*) FROM focus_sessions WHERE status = 'IN_PROGRESS'";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class);
+
+        return count != null && count > 0;
+    }
 
     public void save(FocusSession session) {
         System.out.println("Зберігаємо об'єкт: " + session);
         System.out.println("Ім'я завдання (getTaskName): " + session.getTaskName());
 
-        String sql = "INSERT INTO focus_sessions (task_name, start_time, status) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO focus_sessions (task_name, start_time, status, target_time) VALUES (?, ?, ?, ?)";
 
-        // Спеціальна "кишеня" для ключа
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
         jdbcTemplate.update(connection -> {
-            // Створюємо запит і кажемо: "Поверни нам ключі!"
             PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             ps.setString(1, session.getTaskName());
             ps.setString(2, session.getStartTime().toString());
             ps.setString(3, session.getStatus().name());
+            ps.setString(4, session.getTargetTime().toString());
+
             return ps;
         }, keyHolder);
 
-        // Магія: дістаємо ID з "кишені" і записуємо в наш об'єкт
         if (keyHolder.getKey() != null) {
             session.setId(keyHolder.getKey().longValue());
         }
     }
-    public FocusSession findById(Long id){
-        String sql = "SELECT * FROM focus_session WHERE id = ?";
+
+    public FocusSession findById(Long id) {
+        String sql = "SELECT * FROM focus_sessions WHERE id = ?";
         List<FocusSession> sessions = jdbcTemplate.query(sql, sessionRowMapper, id);
-        if(sessions.isEmpty()){
+        if (sessions.isEmpty()) {
             return null;
-        }else {
+        } else {
             return sessions.getFirst();
         }
-
     }
 
-
-
-    public void deleteSessionById(Long id){
+    public void deleteSessionById(Long id) {
         String sql = "DELETE FROM focus_sessions WHERE id = ? ";
-        jdbcTemplate.update(sql,id);
+        jdbcTemplate.update(sql, id);
     }
 
-    public void updateTimeAndStatus(Long id, LocalDateTime endTime, Long duration, StatusEnum statusEnum){
+    public void updateTimeAndStatus(Long id, LocalDateTime endTime, Long duration, StatusEnum statusEnum) {
         String sql = "UPDATE focus_sessions SET end_time = ?, duration_seconds = ?, status = ? WHERE id = ?";
         jdbcTemplate.update(sql,
                 endTime.toString(),
@@ -74,9 +77,9 @@ public class SessionRepository{
         );
     }
 
-    public List<FocusSession> findALL(){
+    public List<FocusSession> findALL() {
         String sql = "SELECT * FROM focus_sessions ORDER by id DESC";
-        return  jdbcTemplate.query(sql,sessionRowMapper);
+        return jdbcTemplate.query(sql, sessionRowMapper);
     }
 
     private final RowMapper<FocusSession> sessionRowMapper = (rs, _) -> {
@@ -101,6 +104,9 @@ public class SessionRepository{
         if (statusStr != null) {
             session.setStatus(StatusEnum.valueOf(statusStr));
         }
+
+        session.setTargetTime(rs.getLong("target_time"));
+
         return session;
     };
 }
