@@ -1,5 +1,6 @@
 package nordcode.Focus_Timer.controller;
 
+import nordcode.Focus_Timer.model.CreateTaskRequest;
 import nordcode.Focus_Timer.model.FocusSession;
 import nordcode.Focus_Timer.service.TimerService;
 import org.springframework.web.bind.annotation.*;
@@ -7,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@RequestMapping("/api/v1/timer")
 public class TimerController{
 
     private final TimerService timerService;
@@ -15,9 +17,9 @@ public class TimerController{
         this.timerService = timerService;
     }
 
-@PostMapping
-    public void createFocusSession(@RequestBody String taskName){
-    timerService.startNewSession(taskName);
+@PostMapping("/create")
+    public FocusSession createFocusSession(@RequestBody CreateTaskRequest request){
+    return timerService.startNewSession(request.getTaskName());
 }
 
 @GetMapping
@@ -25,13 +27,13 @@ public class TimerController{
         return timerService.allSession();
 }
 
-@PutMapping
-    public void UpdateById(@RequestBody Long id){
+@PutMapping("/stop{id}")
+    public void UpdateById(@PathVariable Long id){
          timerService.stopSessionById(id);
 }
 
-@DeleteMapping
-    public void deleteSession(@RequestBody Long id){
+@DeleteMapping("/delete{id}")
+    public void deleteSession(@PathVariable Long id){
         timerService.deleteSession(id);
 }
 

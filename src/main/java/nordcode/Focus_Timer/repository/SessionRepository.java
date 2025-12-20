@@ -4,8 +4,12 @@ import nordcode.Focus_Timer.model.FocusSession;
 import nordcode.Focus_Timer.model.StatusEnum;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
+import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -19,32 +23,48 @@ public class SessionRepository{
     }
 
 
-    public void save(FocusSession session){
-        String sql = "INSERT INTO focus_sessions (task_name, start_time, status) VALUES (?,?,?)";
-        jdbcTemplate.update(sql,
-                session.getTaskName(),
-                session.getStartTime().toString(),
-                session.getStatus().name()
-        );
-    }
+    public void save(FocusSession session) {
+        System.out.println("Зберігаємо об'єкт: " + session);
+        System.out.println("Ім'я завдання (getTaskName): " + session.getTaskName());
 
+        String sql = "INSERT INTO focus_sessions (task_name, start_time, status) VALUES (?, ?, ?)";
+
+        // Спеціальна "кишеня" для ключа
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+
+        jdbcTemplate.update(connection -> {
+            // Створюємо запит і кажемо: "Поверни нам ключі!"
+            PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            ps.setString(1, session.getTaskName());
+            ps.setString(2, session.getStartTime().toString());
+            ps.setString(3, session.getStatus().name());
+            return ps;
+        }, keyHolder);
+
+        // Магія: дістаємо ID з "кишені" і записуємо в наш об'єкт
+        if (keyHolder.getKey() != null) {
+            session.setId(keyHolder.getKey().longValue());
+        }
+    }
     public FocusSession findById(Long id){
         String sql = "SELECT * FROM focus_session WHERE id = ?";
         List<FocusSession> sessions = jdbcTemplate.query(sql, sessionRowMapper, id);
         if(sessions.isEmpty()){
             return null;
         }else {
-            return sessions.get(0);
+            return sessions.getFirst();
         }
 
     }
+
+
 
     public void deleteSessionById(Long id){
         String sql = "DELETE FROM focus_sessions WHERE id = ? ";
         jdbcTemplate.update(sql,id);
     }
 
-    public void updateEndTime(Long id, LocalDateTime endTime, Long duration, StatusEnum statusEnum){
+    public void updateTimeAndStatus(Long id, LocalDateTime endTime, Long duration, StatusEnum statusEnum){
         String sql = "UPDATE focus_sessions SET end_time = ?, duration_seconds = ?, status = ? WHERE id = ?";
         jdbcTemplate.update(sql,
                 endTime.toString(),
@@ -59,7 +79,7 @@ public class SessionRepository{
         return  jdbcTemplate.query(sql,sessionRowMapper);
     }
 
-    private final RowMapper<FocusSession> sessionRowMapper = (rs, rowNum) -> {
+    private final RowMapper<FocusSession> sessionRowMapper = (rs, _) -> {
         FocusSession session = new FocusSession();
 
         session.setId(rs.getLong("id"));

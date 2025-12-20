@@ -27,8 +27,7 @@ public class TimerService {
 
     public void stopSessionById(Long id){
        FocusSession session = repository.findById(id);
-        repository.updateEndTime(session.getId(),LocalDateTime.now(), session.getDurationSeconds(), session.getStatus());
-        repository.save(session);
+        repository.updateTimeAndStatus(session.getId(),LocalDateTime.now(), session.getDurationSeconds(), session.getStatus());
         System.out.println("Session ended! " + session.getTaskName());
     }
 

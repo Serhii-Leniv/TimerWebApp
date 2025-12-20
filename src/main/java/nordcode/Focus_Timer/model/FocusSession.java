@@ -3,9 +3,12 @@ package nordcode.Focus_Timer.model;
 
 import java.time.LocalDateTime;
 
+@Entity
 public class FocusSession {
 
     private Long id;
+
+    @Column(name = "task_name")  // <--- ДОДАЙТЕ ЦЕЙ РЯДОК
     private String taskName;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
